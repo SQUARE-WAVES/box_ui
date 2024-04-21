@@ -5,31 +5,34 @@ use sdl2::video::WindowContext;
 use sdl2::render::Canvas;
 use sdl2::render::TextureCreator;
 use sdl2::render::Texture;
-
 use super::UIError;
 
-type Txc = TextureCreator<WindowContext>;
-
 pub struct TextureCache<'a> {
-  cache: HashMap<String,Texture<'a>>,
+  tc:&'a TextureCreator<WindowContext>,
+  txs:HashMap<&'static str,Texture<'a>>
 }
 
 impl<'a> TextureCache<'a> {
-  pub fn new() -> Self {
+  pub fn new(tc: &'a TextureCreator<WindowContext>) -> Self {
     Self {
-      cache:HashMap::new()
+      tc:tc,
+      txs:HashMap::new()
     }
   }
 
-  pub fn store(&mut self,k: &str,t: Texture<'a>) {
-    self.cache.insert(k.to_string(),t);
+  pub fn load<'b,T>(&mut self, key:&'static str, proc:T) -> Result<(),UIError>
+    where 'a:'b, T:FnOnce(&'b TextureCreator<WindowContext>) -> Result<Texture<'a>,UIError>
+  {
+    match proc(self.tc) {
+      Ok(t) => {
+        self.txs.insert(key,t);
+        Ok(())
+      },
+      Err(e) => Err(e)
+    }
   }
 
-  pub fn get(&self,k:&str) -> Option<&Texture> {
-    self.cache.get(k)
-  }
-
-  pub fn get_mut(&'a mut self,k:&str) -> Option<&mut Texture> {
-    self.cache.get_mut(k)
+  pub fn get<'b>(&self,key:&'static str) -> Option<&'b Texture> {
+    self.txs.get(key)
   }
 }

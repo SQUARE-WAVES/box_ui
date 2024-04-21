@@ -1,16 +1,15 @@
 use std::cmp::min;
 use std::cmp::max;
-use std::collections::HashMap;
 
 use sdl2::render::Canvas;
+use sdl2::render::Texture;
 use sdl2::video::Window;
 use sdl2::rect::Rect;
 use sdl2::rect::Point;
 use sdl2::pixels::Color;
 use sdl2::render::BlendMode;
-use sdl2::render::Texture;
 
-use super::texture_cache::TextureCache;
+use super::UIError;
 
 type Cnv = Canvas<Window>;
 
@@ -93,6 +92,43 @@ impl<'a> DrawContext<'a> {
 	pub fn set_blend(&mut self,mode: BlendMode) {
 		self.canv.set_blend_mode(mode);
 	}
+
+  //stamp stuff
+  pub fn stamp_all<T1>(&mut self,t: &Texture,dest:T1) -> Result<(),UIError>
+  where T1:Into<Rect>
+  {
+    self.canv.copy(t,None,dest.into()).map_err(UIError::TextureCopy)
+  }
+
+  pub fn stamp_segment<T1,T2>(&mut self,t: &Texture,src: T1, dest:T2) -> Result<(),UIError>
+  where T1: Into<Rect>,T2: Into<Rect> {
+    self.canv.copy(t,src.into(),dest.into()).map_err(UIError::TextureCopy)
+  }
+
+  pub fn stamp_ex<T1,T2,T3>(
+    &mut self, 
+    t: &Texture,
+    src: T1, 
+    dest:T2,
+    rot:f64,
+    center:T3,
+    flip_h:bool,
+    flip_v:bool
+  ) -> Result<(),UIError>
+  where T1:Into<Rect>, T2:Into<Rect>, T3:Into<Option<Point>> 
+  {
+    self.canv.copy_ex(
+      t,
+      src.into(),
+      dest.into(),
+      rot,
+      center.into(),
+      flip_h,
+      flip_v
+    ).
+    map_err(UIError::TextureCopy)
+  }
+
 }
 
 impl<'a> Drop for DrawContext<'a> {

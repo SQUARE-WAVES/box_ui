@@ -48,7 +48,7 @@ fn main() -> Result<(),Box<dyn Error>> {
   while sys.handle_events(eventer) {
     scr.start_frame();
     
-    scr.one_shot(0,0,250,250,|mut dc| {
+    scr.one_shot(0,0,250,250,|mut dc,_| {
       for _i in 0..10 {
         let color = colors[rng.get(3) as usize];
         dc.set_color_tup(color);

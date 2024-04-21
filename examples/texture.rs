@@ -8,9 +8,10 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
+use sdl2::event::Event;
 
 use box_ui::UISystem;
-use box_ui::Gui;
+use box_ui::TextureCache;
 use box_ui::UIError;
 
 //makes a lil triangle gradient guy
@@ -37,26 +38,37 @@ fn make_surface() -> Surface<'static> {
   scan.into_surface()
 }
 
+fn eventer(ev: Event) -> bool {
+  match ev {
+      Event::Quit{..} => false,
+      _=> true
+    }
+}
+
 fn main() -> Result<(),Box<dyn Error>> {
   let mut sys = UISystem::new()?;
   let mut scr = sys.new_screen("borto",600,600)?;
-  let mut gui = scr.gui()?;
+  let tc = scr.texture_creator();
+  let mut cache = TextureCache::new(&tc);
 
   let surf = make_surface();
 
-  gui.load_surface("pyramid",surf);
+  cache.load("pyramid",move|tc|{
+    surf.as_texture(&tc).map_err(UIError::TextureCreate)
+  });
 
   let mut rot : f64 = 0.0;
 
-  while sys.dispatch_events(&mut gui) {
-    gui.start_frame();
+  while sys.handle_events(eventer) {
+    scr.start_frame();
     
-    gui.one_shot(0,0,250,250,|_io,mut dc| {
-      let mut stmp = dc.get_stamp("pyramid").expect("where's the stamp??");
-      stmp.copy_ex(None,Some(Rect::new(10,10,256,256)),rot,None,false,false);
+    scr.one_shot(&cache,0,0,250,250,|mut dc,tc| {
+      let stmp = tc.get("pyramid").expect("oh not the stamp wasn't there");
+
+      dc.stamp_ex(stmp,(0,0,256,256),(10,10,256,256),rot,None,false,false).unwrap();
     });
 
-    gui.end_frame();
+    scr.end_frame();
     std::thread::sleep(std::time::Duration::from_millis(100));
     rot = rot + 1.0;
   }

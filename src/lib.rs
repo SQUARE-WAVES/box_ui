@@ -2,25 +2,26 @@
 mod ui_error;
 mod io_state;
 mod screen;
-mod texture_cache;
-mod stamp;
+//mod stamp;
 mod gui;
 mod io_context;
 mod draw_context;
 mod key_index;
 mod key_map;
-mod box_font;
-mod font_writer;
+//mod box_font;
+//mod font_writer;
+mod texture_cache;
 
 //exports
 pub use ui_error::UIError;
 pub use screen::Screen;
+pub use texture_cache::TextureCache;
 //pub use gui::Gui;
 pub use io_context::IOContext;
 pub use draw_context::DrawContext;
-pub use stamp::Stamp;
-pub use box_font::BoxFont;
-pub use box_font::LetterInfo;
+//pub use stamp::Stamp;
+//pub use box_font::BoxFont;
+//pub use box_font::LetterInfo;
 
 pub trait EventDispatcher {
   fn dispatch_event(&mut self,ev: &sdl2::event::Event) -> bool;
