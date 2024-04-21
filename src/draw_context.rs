@@ -36,25 +36,6 @@ impl<'a,'b> DrawContext<'a,'b> {
 		}
 	}
 
-  pub fn cut(root: &'a mut Self,x:i32,y:i32,w:u32,h:u32) -> Self {
-    let (rx,ry,rw,rh) = root.bounds.into();
-    
-    //gotta do some clamping here
-    let cut_x = clamp(x+rx,0,rx+rw as i32);
-    let cut_y = clamp(y+ry,0,ry+rh as i32);
-    let cut_w = clamp(w,0,w-x as u32);
-    let cut_h = clamp(h,0,h-y as u32);
-
-    let clippy = root.canv.clip_rect();
-
-    Self {
-      canv:root.canv,
-      cache:root.cache,
-      bounds:(cut_x,cut_y,cut_w,cut_h).into(),
-      restore_clip:clippy
-    }
-  }
-
   pub fn set_color(&mut self,r:u8, g:u8, b:u8, a:u8) {
 		self.canv.set_draw_color(Color::RGBA(r,g,b,a));
 	}
