@@ -49,12 +49,12 @@ impl Screen {
 		self.cnv.present();
 	}
 
-	pub fn one_shot<CB,T>(&mut self,txs:&TextureCache,x:i32,y:i32,w:u32,h:u32,cb: CB) -> T
-  where CB: FnOnce(DrawContext,&TextureCache) -> T
+	pub fn one_shot<'a,CB,T>(&mut self,txs:&mut TextureCache<'a>,x:i32,y:i32,w:u32,h:u32,cb: CB) -> T
+  where CB: FnOnce(DrawContext) -> T
   {
 		let cnv = &mut (self.cnv);
-		let draw = DrawContext::new(cnv,x,y,w,h);
+		let draw = DrawContext::new(cnv,txs,x,y,w,h);
 
-		cb(draw,txs)
+		cb(draw)
 	}
 }

@@ -9,6 +9,7 @@ use sdl2::rect::Point;
 use sdl2::pixels::Color;
 use sdl2::render::BlendMode;
 
+use super::TextureCache;
 use super::UIError;
 
 type Cnv = Canvas<Window>;
@@ -17,17 +18,19 @@ fn clamp<T :Ord>(v: T, minv: T, maxv: T) -> T {
   max(minv,min(v,maxv))
 }
 
-pub struct DrawContext<'a> {
+pub struct DrawContext<'a,'b> {
 	canv : &'a mut Canvas<Window>,
+  cache: &'a mut TextureCache<'b>,
 	bounds: Rect,
 	restore_clip:Option<Rect> 
 }
 
-impl<'a> DrawContext<'a> {
-	pub fn new(c:&'a mut Cnv,x:i32,y:i32,w:u32,h:u32 ) -> Self {
+impl<'a,'b> DrawContext<'a,'b> {
+	pub fn new(c:&'a mut Cnv,cache:&'a mut TextureCache<'b>,x:i32,y:i32,w:u32,h:u32 ) -> Self {
     let clippy = c.clip_rect();
     Self {
 			canv:c,
+      cache:cache,
 			bounds:(x,y,w,h).into(),
 			restore_clip:clippy
 		}
@@ -46,6 +49,7 @@ impl<'a> DrawContext<'a> {
 
     Self {
       canv:root.canv,
+      cache:root.cache,
       bounds:(cut_x,cut_y,cut_w,cut_h).into(),
       restore_clip:clippy
     }
@@ -58,7 +62,6 @@ impl<'a> DrawContext<'a> {
   pub fn set_color_tup(&mut self,(r,g,b,a):(u8,u8,u8,u8)) {
     self.canv.set_draw_color(Color::RGBA(r,g,b,a));
   }
-
 
 	pub fn draw_rectangle(&mut self, x: i32,y: i32,w: u32,h: u32) {
 		let (off_x, off_y) = self.bounds.top_left().into();
@@ -94,20 +97,22 @@ impl<'a> DrawContext<'a> {
 	}
 
   //stamp stuff
-  pub fn stamp_all<T1>(&mut self,t: &Texture,dest:T1) -> Result<(),UIError>
+  pub fn stamp_all<T1>(&mut self,k: &'static str,dest:T1) -> Result<(),UIError>
   where T1:Into<Rect>
   {
+    let t = self.cache.get(k).expect("oh no the stamp wasn't found");
     self.canv.copy(t,None,dest.into()).map_err(UIError::TextureCopy)
   }
 
-  pub fn stamp_segment<T1,T2>(&mut self,t: &Texture,src: T1, dest:T2) -> Result<(),UIError>
+  pub fn stamp_segment<T1,T2>(&mut self,k: &'static str,src: T1, dest:T2) -> Result<(),UIError>
   where T1: Into<Rect>,T2: Into<Rect> {
+    let t = self.cache.get(k).expect("oh no the stamp wasn't found");
     self.canv.copy(t,src.into(),dest.into()).map_err(UIError::TextureCopy)
   }
 
   pub fn stamp_ex<T1,T2,T3>(
     &mut self, 
-    t: &Texture,
+    k: &'static str,
     src: T1, 
     dest:T2,
     rot:f64,
@@ -117,6 +122,7 @@ impl<'a> DrawContext<'a> {
   ) -> Result<(),UIError>
   where T1:Into<Rect>, T2:Into<Rect>, T3:Into<Option<Point>> 
   {
+    let t = self.cache.get(k).expect("oh no the stamp wasn't found");
     self.canv.copy_ex(
       t,
       src.into(),
@@ -131,7 +137,7 @@ impl<'a> DrawContext<'a> {
 
 }
 
-impl<'a> Drop for DrawContext<'a> {
+impl<'a,'b> Drop for DrawContext<'a,'b> {
 	fn drop(&mut self) {
 		self.canv.set_clip_rect(self.restore_clip);
 		self.canv.set_blend_mode(BlendMode::None);

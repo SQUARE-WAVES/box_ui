@@ -62,10 +62,8 @@ fn main() -> Result<(),Box<dyn Error>> {
   while sys.handle_events(eventer) {
     scr.start_frame();
     
-    scr.one_shot(&cache,0,0,250,250,|mut dc,tc| {
-      let stmp = tc.get("pyramid").expect("oh not the stamp wasn't there");
-
-      dc.stamp_ex(stmp,(0,0,256,256),(10,10,256,256),rot,None,false,false).unwrap();
+    scr.one_shot(&mut cache,0,0,250,250,|mut dc| {
+      dc.stamp_ex("pyramid",(0,0,256,256),(10,10,256,256),rot,None,false,false).unwrap();
     });
 
     scr.end_frame();
