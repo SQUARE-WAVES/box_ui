@@ -14,10 +14,10 @@ mod font_writer;
 //exports
 pub use ui_error::UIError;
 pub use screen::Screen;
-pub use gui::Gui;
+//pub use gui::Gui;
 pub use io_context::IOContext;
 pub use draw_context::DrawContext;
-pub use draw_context::Stamp;
+//pub use draw_context::Stamp;
 pub use box_font::BoxFont;
 pub use box_font::LetterInfo;
 
@@ -58,9 +58,9 @@ impl UISystem {
     true
   }
 
-  pub fn handle_events<H:FnMut(&sdl2::event::Event)-> bool>(&mut self,mut handler: H) -> bool {
+  pub fn handle_events<H:FnMut(sdl2::event::Event)-> bool>(&mut self,mut handler: H) -> bool {
     for ev in self.evp.poll_iter() {
-      if !handler(&ev) {
+      if !handler(ev) {
         return false;
       }
     }

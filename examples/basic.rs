@@ -2,6 +2,7 @@ extern crate box_ui;
 
 use std::error::Error;
 use box_ui::UISystem;
+use sdl2::event::Event;
 
 const colors : [(u8,u8,u8,u8);4] = [
   (0xFF,0xFF,0xFF,0xFF),
@@ -32,16 +33,22 @@ impl LFSR{
   }
 }
 
+fn eventer(ev: Event) -> bool {
+  match ev {
+      Event::Quit{..} => false,
+      _=> true
+    }
+}
+
 fn main() -> Result<(),Box<dyn Error>> {
   let mut sys = UISystem::new()?;
   let mut scr = sys.new_screen("random rects",250,250)?;
-  let mut gui = scr.create_gui()?;
   let mut rng = LFSR::new();
-  
-  while sys.dispatch_events(&mut gui) {
-    gui.start_frame();
+
+  while sys.handle_events(eventer) {
+    scr.start_frame();
     
-    gui.one_shot(0,0,250,250,|_io,mut dc| {
+    scr.one_shot(0,0,250,250,|mut dc| {
       for _i in 0..10 {
         let color = colors[rng.get(3) as usize];
         dc.set_color_tup(color);
@@ -54,7 +61,7 @@ fn main() -> Result<(),Box<dyn Error>> {
       }
     });
 
-    gui.end_frame();
+    scr.end_frame();
   }
 
   Ok(())

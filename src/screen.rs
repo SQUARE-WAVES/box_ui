@@ -2,14 +2,14 @@ use sdl2::video::Window;
 use sdl2::video::WindowContext;
 use sdl2::render::Canvas;
 use sdl2::render::TextureCreator;
+use sdl2::pixels::Color;
 
 use super::ui_error::UIError;
 use super::texture_cache::TextureCache;
-use super::Gui;
+use super::DrawContext;
 
 pub struct Screen {
   cnv: Canvas<Window>,
-  txc: TextureCreator<WindowContext>,
   w:u32,
   h:u32
 }
@@ -27,9 +27,8 @@ impl Screen {
     build().
     map_err(UIError::CanvasCreation)?;
 
-    let txc = cnv.texture_creator();
 
-    Ok(Self{cnv:cnv,txc,w:w,h:h})
+    Ok(Self{cnv:cnv,w:w,h:h})
   }
 
   pub fn id(&self) -> u32 { self.cnv.window().id() }
@@ -38,7 +37,21 @@ impl Screen {
     (self.w,self.h)
   }
 
-  pub fn gui(&mut self) -> Result<Gui,UIError> {
-    Gui::new(&mut self.cnv,&mut self.txc)
-  }
+pub fn start_frame(&mut self) {
+	  self.cnv.set_draw_color(Color::RGBA(0x00,0x00,0x00,0xFF));
+		self.cnv.clear();
+	}
+	
+	pub fn end_frame(&mut self) {
+		self.cnv.present();
+	}
+
+	pub fn one_shot<CB,T>(&mut self,x:i32,y:i32,w:u32,h:u32,cb: CB) -> T
+  where CB: FnOnce(DrawContext) -> T
+  {
+		let cnv = &mut (self.cnv);
+		let draw = DrawContext::new(cnv,x,y,w,h);
+
+		cb(draw)
+	}
 }

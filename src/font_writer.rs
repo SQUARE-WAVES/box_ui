@@ -1,6 +1,6 @@
-use super::Stamp;
+//use super::Stamp;
 use super::box_font::BoxFont;
-
+/*
 pub fn write<T:BoxFont>(fnt: &T, stamp:&mut Stamp, x: i32,y: i32,txt: &str) {
   let mut xpos = x;
   let mut ypos = y;
@@ -23,4 +23,4 @@ pub fn write<T:BoxFont>(fnt: &T, stamp:&mut Stamp, x: i32,y: i32,txt: &str) {
       }
     };
   }
-}
+}*/
