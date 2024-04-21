@@ -13,21 +13,21 @@ fn clamp<T :Ord>(v: T, minv: T, maxv: T) -> T {
 
 pub struct IOContext<'a> {
 	state: &'a IOState,
-	bounds:(i32,i32,u32,u32)
+	bounds:Rect
 }
 
 impl<'a> IOContext<'a> {
 	pub fn new(st: &'a IOState, x:i32,y:i32,w:u32,h:u32) -> Self {
 		Self {
 			state:st,
-			bounds:(x,y,w,h)
+			bounds:(x,y,w,h).into()
 		}
 	}
 
   //this returns another IO context that has subset bounds
-  //it's for doing composite widgets
+  //it's for doing composites 
   pub fn cut(parent: &'a IOContext,x:i32,y:i32,w:u32,h:u32) -> Self {
-    let (rx,ry,rw,rh) = parent.bounds;
+    let (rx,ry,rw,rh) = parent.bounds.into();
     //gotta do some clamping here
     let cut_x = clamp(x+rx,0,rx+rw as i32);
     let cut_y = clamp(y+ry,0,ry+rh as i32);
@@ -36,29 +36,28 @@ impl<'a> IOContext<'a> {
 
     Self {
       state:parent.state,
-      bounds:(cut_x,cut_y,cut_w,cut_h)
+      bounds:(cut_x,cut_y,cut_w,cut_h).into()
     }
   }
 
-	fn rect(&self) -> Rect {
-		let (x,y,w,h) = self.bounds;
-		Rect::new(x,y,w,h)
-	}
+  fn contains_point<T:Into<(i32,i32)>>(&self,p: T) -> bool {
+    self.bounds.contains_point(p)
+  }
 
 	//is the left mouse button down inside our widget
 	pub fn left_down(&self) -> bool {
 		let state = self.state.current_mouse.left_button;
-		(state.button == DOWN) && self.rect().contains_point(state.down_pos)
+		(state.button == DOWN) && self.contains_point(state.down_pos)
 	}
 
 	pub fn right_down(&self) -> bool {
 		let state = self.state.current_mouse.right_button;
-		(state.button == DOWN) && self.rect().contains_point(state.down_pos)
+		(state.button == DOWN) && self.contains_point(state.down_pos)
 	}
 
 	pub fn middle_down(&self) -> bool {
 		let state = self.state.current_mouse.middle_button;
-		(state.button == DOWN) && self.rect().contains_point(state.down_pos)
+		(state.button == DOWN) && self.contains_point(state.down_pos)
 	}
 
 	pub fn end_click(&self) -> bool  {
@@ -66,10 +65,8 @@ impl<'a> IOContext<'a> {
 		let pre_state = self.state.prev_mouse.left_button;
 		let button_up = state.button == UP && pre_state.button == DOWN;
 
-		let rect = self.rect();
-
-		let down_in_bounds = rect.contains_point(pre_state.down_pos);
-		let up_in_bounds = rect.contains_point(state.up_pos);
+		let down_in_bounds = self.contains_point(pre_state.down_pos);
+		let up_in_bounds = self.contains_point(state.up_pos);
 
 		button_up && down_in_bounds && up_in_bounds
 	}
@@ -79,10 +76,8 @@ impl<'a> IOContext<'a> {
 		let pre_state = self.state.prev_mouse.right_button;
 		let button_up = state.button == UP && pre_state.button == DOWN;
 
-		let rect = self.rect();
-
-		let down_in_bounds = rect.contains_point(pre_state.down_pos);
-		let up_in_bounds = rect.contains_point(state.up_pos);
+		let down_in_bounds = self.contains_point(pre_state.down_pos);
+		let up_in_bounds = self.contains_point(state.up_pos);
 
 		button_up && down_in_bounds && up_in_bounds
 	}
@@ -92,33 +87,26 @@ impl<'a> IOContext<'a> {
 		let pre_state = self.state.prev_mouse.middle_button;
 		let button_up = state.button == UP && pre_state.button == DOWN;
 
-		let rect = self.rect();
-
-		let down_in_bounds = rect.contains_point(pre_state.down_pos);
-		let up_in_bounds = rect.contains_point(state.up_pos);
+		let down_in_bounds = self.contains_point(pre_state.down_pos);
+		let up_in_bounds = self.contains_point(state.up_pos);
 
 		button_up && down_in_bounds && up_in_bounds
 	}
 
 	pub fn left_click_out(&self) -> bool {
-		let rect = self.rect();
 		let state = self.state.current_mouse.left_button;
-
-		state.button == DOWN && !rect.contains_point(state.down_pos)
+		state.button == DOWN && !self.contains_point(state.down_pos)
 	}
 
 	pub fn right_click_out(&self) -> bool {
-		let rect = self.rect();
 		let state = self.state.current_mouse.right_button;
-
-		state.button == DOWN && !rect.contains_point(state.down_pos)
+		state.button == DOWN && !self.contains_point(state.down_pos)
 	}
 
 	pub fn middle_click_out(&self) -> bool {
-		let rect = self.rect();
 		let state = self.state.current_mouse.middle_button;
 
-		state.button == DOWN && !rect.contains_point(state.down_pos)
+		state.button == DOWN && !self.contains_point(state.down_pos)
 	}
 
 	//for deltas relative and absolute are the same
@@ -139,21 +127,21 @@ impl<'a> IOContext<'a> {
 	//these get the relative position to the widget
 	pub fn mouse_y_pos(&self) -> i32 {
 		let (_,y) = self.state.current_mouse.pos;
-		let (_,off_y,_,_) = self.bounds;
+		let (_,off_y,_,_) = self.bounds.into();
 		
 		y - off_y
 	}
 
 	pub fn mouse_x_pos(&self) -> i32 {
 		let (x,_) = self.state.current_mouse.pos;
-		let (off_x,_,_,_) = self.bounds;
+		let (off_x,_,_,_) = self.bounds.into();
 		
 		x - off_x
 	}
 
 	pub fn mouse_pos(&self) -> (i32,i32) {
 		let (x,y) = self.state.current_mouse.pos;
-		let (off_x,off_y,_,_) = self.bounds;
+		let (off_x,off_y,_,_) = self.bounds.into();
 		
 		(x-off_x,y-off_y)
 	}

@@ -3,10 +3,12 @@ use std::fmt;
 
 use sdl2::video::WindowBuildError;
 use sdl2::IntegerOrSdlError;
+use sdl2::render::TextureValueError;
 
 #[derive(Debug)]
 pub enum UIError {
   TextureLoad(String),
+  TextureCreate(TextureValueError),
   EventPumpCreation(String),
   SDLInit(String),
   VideoInit(String),
@@ -25,6 +27,8 @@ impl fmt::Display for UIError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       UIError::TextureLoad(s) => write!(f,"texture load failed: {}",s),
+      
+      UIError::TextureCreate(e) => e.fmt(f),
 
       UIError::EventPumpCreation(s) => write!(f,"failed to create event pump: {}",s),
 

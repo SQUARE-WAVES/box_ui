@@ -1,42 +1,49 @@
 use std::cmp::min;
 use std::cmp::max;
+use std::collections::HashMap;
 
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::rect::Rect;
+use sdl2::rect::Point;
 use sdl2::pixels::Color;
 use sdl2::render::BlendMode;
+use sdl2::render::Texture;
 
-use super::BoxFont;
-use super::font_writer::FontWriter;
+use super::texture_cache::TextureCache;
 
 type Cnv = Canvas<Window>;
-type Wrt<'b,T> = FontWriter<'b,T>;
 
 fn clamp<T :Ord>(v: T, minv: T, maxv: T) -> T {
   max(minv,min(v,maxv))
 }
 
-pub struct DrawContext<'a,'b, T:BoxFont> {
+pub struct DrawContext<'a,'b> {
 	canv : &'a mut Canvas<Window>,
-	writer: &'a mut  FontWriter<'b,T>,
-	bounds: (i32,i32,u32,u32),
+  textures: &'a mut HashMap<&'static str,Texture<'b>>,
+	bounds: Rect,
 	restore_clip:Option<Rect> 
 }
 
-impl<'a,'b, T:BoxFont> DrawContext<'a, 'b, T> {
-	pub fn new(c:&'a mut Cnv,wr:&'a mut Wrt<'b,T>,x:i32,y:i32,w:u32,h:u32 ) -> Self {
+pub struct Stamp<'a,'b> {
+  canv: &'a mut Canvas<Window>,
+  txt:&'a Texture<'b>,
+  bounds:Rect
+}
+
+impl<'a,'b> DrawContext<'a,'b>  where 'b:'a {
+	pub fn new(c:&'a mut Cnv,txc: &'a mut HashMap<&str,Texture<'b>>,x:i32,y:i32,w:u32,h:u32 ) -> Self {
     let clippy = c.clip_rect();
     Self {
 			canv:c,
-			writer:wr,
-			bounds:(x,y,w,h),
+      textures:txc,
+			bounds:(x,y,w,h).into(),
 			restore_clip:clippy
 		}
 	}
 
   pub fn cut(root: &'a mut Self,x:i32,y:i32,w:u32,h:u32) -> Self {
-    let (rx,ry,rw,rh) = root.bounds;
+    let (rx,ry,rw,rh) = root.bounds.into();
     
     //gotta do some clamping here
     let cut_x = clamp(x+rx,0,rx+rw as i32);
@@ -48,9 +55,24 @@ impl<'a,'b, T:BoxFont> DrawContext<'a, 'b, T> {
 
     Self {
       canv:root.canv,
-      writer:root.writer,
-      bounds:(cut_x,cut_y,cut_w,cut_h),
+      textures:root.textures,
+      bounds:(cut_x,cut_y,cut_w,cut_h).into(),
       restore_clip:clippy
+    }
+  }
+
+  pub fn get_stamp(&mut self, txt_key:&str) -> Option<Stamp> {
+    
+    match self.textures.get(txt_key) {
+      Some(t) => { 
+        Some(Stamp{
+          canv:& mut self.canv,
+          txt:t,
+          bounds:self.bounds.into()
+        })
+      },
+
+      None => None
     }
   }
 
@@ -62,8 +84,10 @@ impl<'a,'b, T:BoxFont> DrawContext<'a, 'b, T> {
     self.canv.set_draw_color(Color::RGBA(r,g,b,a));
   }
 
+  //Basic Boxes and lines
+
 	pub fn draw_rectangle(&mut self, x: i32,y: i32,w: u32,h: u32) {
-		let (off_x, off_y,_,_) = self.bounds;
+		let (off_x, off_y) = self.bounds.top_left().into();
 
 		self.canv.draw_rect(Rect::new(x+off_x,y + off_y,w,h)).expect("draw rectangle failed");
 	}
@@ -73,7 +97,7 @@ impl<'a,'b, T:BoxFont> DrawContext<'a, 'b, T> {
 	}
 
 	pub fn fill_rectangle(&mut self,x: i32,y: i32,w: u32,h: u32) {
-		let (off_x, off_y,_,_) = self.bounds;
+		let (off_x, off_y) = self.bounds.top_left().into();
 
 		self.canv.fill_rect(Rect::new(x+off_x,y + off_y,w,h)).expect("fill rectangle failed");	
 	}
@@ -83,7 +107,7 @@ impl<'a,'b, T:BoxFont> DrawContext<'a, 'b, T> {
 	}
 
 	pub fn set_clip(&mut self, x:i32,y:i32,w:u32,h:u32) {
-		let (off_x, off_y,_,_) = self.bounds;
+		let (off_x, off_y) = self.bounds.top_left().into();
 
 		self.restore_clip = self.canv.clip_rect();
 		let rect = Rect::new(x+off_x,y+off_y,w,h);
@@ -94,24 +118,43 @@ impl<'a,'b, T:BoxFont> DrawContext<'a, 'b, T> {
 	pub fn set_blend(&mut self,mode: BlendMode) {
 		self.canv.set_blend_mode(mode);
 	}
-
-	pub fn write(&mut self, x:i32,y:i32,txt:&str) {
-		let (off_x, off_y,_,_) = self.bounds;
-		self.writer.write(&mut self.canv,x+off_x,y+off_y,txt);
-	}
-
-	pub fn set_text_color(&mut self,r:u8,g:u8,b:u8,a:u8) {
-		self.writer.set_color(r,g,b,a);
-	}
-
-  pub fn set_text_color_tup(&mut self,t:(u8,u8,u8,u8)) {
-		self.writer.set_color_tup(t);
-	}
 }
 
-impl<'a, 'b, F:BoxFont> Drop for DrawContext<'a,'b, F> {
+impl<'a,'b> Drop for DrawContext<'a,'b> {
 	fn drop(&mut self) {
 		self.canv.set_clip_rect(self.restore_clip);
 		self.canv.set_blend_mode(BlendMode::None);
 	}
+}
+
+impl<'a,'b> Stamp<'a,'b> {
+  pub fn copy<T1,T2> (&mut self, src:T1, dst:T2)
+  where 
+    T1:Into<Option<Rect>>,
+    T2:Into<Option<Rect>>
+  {
+    let final_destination = dst.into().
+    map(|r| {
+      r.left_shifted(self.bounds.x()).bottom_shifted(self.bounds.y())
+    }).
+    unwrap_or(self.bounds);
+
+    self.canv.copy(self.txt,src,final_destination).expect("texture copy failed");
+  }
+
+  pub fn copy_ex<T1,T2,P> (&mut self, src:T1, dst:T2,angle:f64,center:P,flip_h:bool,flip_v:bool)
+  where 
+    T1:Into<Option<Rect>>,
+    T2:Into<Option<Rect>>,
+    P:Into<Option<Point>>,
+  {
+    let final_destination = dst.into().
+    map(|r| {
+      r.left_shifted(self.bounds.x()).bottom_shifted(self.bounds.y())
+    }).
+    unwrap_or(self.bounds);
+
+    self.canv.copy_ex(self.txt,src,final_destination,angle,center,flip_h,flip_v).
+    expect("texture copy failed");
+  }
 }
