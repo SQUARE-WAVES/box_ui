@@ -37,7 +37,7 @@ impl Screen {
     (self.w,self.h)
   }
 
-pub fn start_frame(&mut self) {
+  pub fn start_frame(&mut self) {
 	  self.cnv.set_draw_color(Color::RGBA(0x00,0x00,0x00,0xFF));
 		self.cnv.clear();
 	}

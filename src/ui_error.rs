@@ -14,7 +14,8 @@ pub enum UIError {
   VideoInit(String),
   ImageInit(String),
   WindowCreation(WindowBuildError),
-  CanvasCreation(IntegerOrSdlError)
+  CanvasCreation(IntegerOrSdlError),
+  TextureCopy(String)
 }
 
 impl Error for UIError {
@@ -40,7 +41,9 @@ impl fmt::Display for UIError {
 
       UIError::WindowCreation(e) => e.fmt(f),
 
-      UIError::CanvasCreation(e) => e.fmt(f) 
+      UIError::CanvasCreation(e) => e.fmt(f),
+
+      UIError::TextureCopy(s) => write!(f,"Texture copy failed: {}",s)
     }
   }
 }

@@ -3,6 +3,7 @@ mod ui_error;
 mod io_state;
 mod screen;
 mod texture_cache;
+mod stamp;
 mod gui;
 mod io_context;
 mod draw_context;
@@ -17,7 +18,7 @@ pub use screen::Screen;
 //pub use gui::Gui;
 pub use io_context::IOContext;
 pub use draw_context::DrawContext;
-//pub use draw_context::Stamp;
+pub use stamp::Stamp;
 pub use box_font::BoxFont;
 pub use box_font::LetterInfo;
 
