@@ -5,6 +5,7 @@ mod screen;
 mod io_context;
 mod draw_context;
 mod box_font;
+mod gui;
 
 //exports
 pub use sdl2::image::LoadTexture;
@@ -17,6 +18,8 @@ pub use io_state::IOState;
 pub use io_context::IOContext;
 pub use box_font::BoxFont;
 pub use box_font::LetterInfo;
+pub use gui::Widget;
+pub use gui::render_widget;
 
 //not sure about this but maybe it will be ok
 pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;

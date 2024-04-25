@@ -29,7 +29,7 @@ pub trait BoxFont {
   fn box_width(&self) -> u32;
   fn box_height(&self) -> u32;
   
-  fn bounds(&self, txt: &str) -> (u32,u32) {
+  fn size(&self, txt: &str) -> (u32,u32) {
     let mut h :u32 = self.box_height();
     let mut w :u32 = 0;
     let mut lc :u32 = 0;

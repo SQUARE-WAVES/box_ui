@@ -2,6 +2,7 @@ use std::error::Error;
 use sdl2::event::Event;
 
 use box_ui::UISystem;
+use box_ui::UIError;
 use box_ui::DrawContext; //using this for the trait
 use box_ui::Canvas;
 use box_ui::IOContext;
@@ -47,7 +48,7 @@ fn main() -> Result<(),Box<dyn Error>> {
   let mut scr = sys.new_screen("random rects",250,250)?;
   let mut rng = LFSR::new();
 
-  let mut draw = |cnv: &mut Canvas,_io:&IOContext| {
+  let mut draw = |cnv: &mut Canvas,_io:&IOContext| -> Result<(),UIError> {
     cnv.set_rgba(0x00,0x00,0x00,0x00);
     cnv.clear();
 
@@ -59,15 +60,17 @@ fn main() -> Result<(),Box<dyn Error>> {
       let h:u32 = rng.get(49) + 1;
 
       cnv.set_rgba(r,g,b,a);
-      cnv.fill_rectangle(x,y,w,h).expect("wow how did rect drawing fail");
+      cnv.fill_rectangle(x,y,w,h)?;
+
     }
 
     cnv.present();
+    Ok(())
   };
 
   while sys.handle_events(eventer) {
     let now = sys.now();
-    scr.frame(&mut draw,now);
+    scr.frame(&mut draw,now).expect("oh no drawing the frame broke");
 
     //this isn't actually a good way to control frame rate
     std::thread::sleep(std::time::Duration::from_millis(50));

@@ -6,6 +6,7 @@ use sdl2::event::WindowEvent;
 
 use box_ui::EventDispatcher;
 use box_ui::UISystem;
+use box_ui::UIError;
 use box_ui::Screen;
 use box_ui::DrawContext; //using this for the trait impl
 use box_ui::IOContext; //once again the traits!
@@ -23,19 +24,20 @@ pub struct Drawer {
 }
 
 impl<T:DrawContext> FrameDrawer<T,()> for Drawer {
-  fn draw_frame(&mut self,cnv:&mut T,io:&IOContext) {
+  fn draw_frame(&mut self,cnv:&mut T,io:&IOContext) -> Result<(),UIError> {
     cnv.set_rgba(0,0,0,0);
     cnv.clear();
 
     let (x,y) = io.mouse_pos();
     cnv.set_color(COLORS[self.color]);
-    cnv.draw_rectangle(x-25,y-25,50,50).expect("oh no the drawing is broken");
+    cnv.draw_rectangle(x-25,y-25,50,50)?;
 
     if io.end_left_click(){
       self.color = (self.color+1)%4;
     }
 
     cnv.present();
+    Ok(())
   }
 }
 
@@ -111,7 +113,7 @@ fn main() -> Result<(),Box<dyn Error>> {
   while sys.dispatch_events(&mut d) {
     let now = sys.now();
     for (_, (s,d)) in d.map().iter_mut() {
-      s.frame(d,now);
+      s.frame(d,now).expect("oh no frame drawing broke");
     }
   }
 

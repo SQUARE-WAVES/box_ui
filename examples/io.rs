@@ -3,6 +3,7 @@ use std::error::Error;
 use sdl2::event::Event;
 
 use box_ui::UISystem;
+use box_ui::UIError;
 use box_ui::DrawContext; //using this for the trait impl
 use box_ui::IOContext; //once again the traits!
 use box_ui::Canvas;
@@ -20,20 +21,20 @@ fn main() -> Result<(),Box<dyn Error>> {
 
   let mut color = 0;
 
-  let mut draw = |cnv: &mut Canvas,io:&IOContext| {
+  let mut draw = |cnv: &mut Canvas,io:&IOContext| -> Result<(),UIError> {
     cnv.set_rgba(0x00,0x00,0x00,0x00);
     cnv.clear();
 
     let (x,y) = io.mouse_pos();
     cnv.set_color(COLORS[color]);
-    cnv.draw_rectangle(x-25,y-25,50,50).expect("oh no the drawing is broken");
+    cnv.draw_rectangle(x-25,y-25,50,50)?;
 
     if io.end_left_click(){
       color = (color+1)%4;
     }
-    
 
     cnv.present();
+    Ok(())
   };
 
   while sys.handle_events(|ev|{
@@ -42,7 +43,7 @@ fn main() -> Result<(),Box<dyn Error>> {
       e=>scr.process_event(&e)
     }
   }) {
-    scr.frame(&mut draw,sys.now());
+    scr.frame(&mut draw,sys.now()).expect("oh no frame drawing blew up");
   }
 
   Ok(())

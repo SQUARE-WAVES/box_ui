@@ -1,24 +1,28 @@
 use super::DrawContext;
 use super::IOContext;
-use super::BoxFont;
+use super::UIError;
 
-pub mod buttons;
+pub trait Widget<R,T> {
+  fn size(&self) -> (u32,u32);
 
-pub trait Widget
-  fn bounds(&self) -> (i32,i32,u32,u32);
-  fn draw<D:DrawContext>(&mut self, dc: &mut D, io: &IOContext);
+  fn draw<D:DrawContext>(&mut self, dc: &mut D, io: &IOContext,r:&mut R) -> Result<T,UIError>;
 }
 
-pub trait Resizable
-  fn set_bounds(&self,bounds: (i32,i32,u32,u32));
-}
+pub fn render_widget<R,T,W,D>(x:i32,y:i32,w: &mut W, dc:&mut D, io: &IOContext,r:&mut R) -> Result<T,UIError>
+where
+  W:Widget<R,T>,
+  D:DrawContext
+{
+  let (width,height) = w.size();
+  let bounds = (x,y,width,height);
 
-pub fn render_widget<W:Widget,D:DrawContext>(widget: &mut W, dc:&mut D, io: &IOContext) {
   let restore_port = dc.get_portal();
-  dc.set_portal(w.bounds());
-  let io_cut = io.cut(w.bounds());
+  dc.set_portal(bounds);
+  let io_cut = io.cut(bounds);
 
-  w.draw(dc,io);
+  let out = w.draw(dc,&io_cut,r);
 
   dc.set_portal(restore_port);
+
+  out
 }

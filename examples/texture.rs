@@ -14,6 +14,7 @@ use sdl2::render::TextureCreator;
 use sdl2::render::Texture;
 
 use box_ui::UISystem;
+use box_ui::UIError;
 use box_ui::DrawContext;
 use box_ui::FrameDrawer;
 use box_ui::IOContext;
@@ -56,17 +57,18 @@ impl<'a> Gui<'a> {
 }
 
 impl<'a,T:DrawContext> FrameDrawer<T,()> for Gui<'a> {
-  fn draw_frame(&mut self,cnv: &mut T,io:&IOContext) {
+  fn draw_frame(&mut self,cnv: &mut T,io:&IOContext) -> Result<(),UIError> {
     let (_,_,w,h) = io.bounds();
     cnv.set_rgba(0,0,0,0);
     cnv.clear();
     let x = ((w-256)/2) as i32;
     let y = ((h-256)/2) as i32;
-    cnv.stamp_ex(&self.tx,None,Rect::new(x,y,256,256),self.rot,None,false,false).
-    expect("oh no the stamp broke");
+    cnv.stamp_ex(&self.tx,None,Rect::new(x,y,256,256),self.rot,None,false,false)?;
     cnv.present();
 
     self.rot += 1.0;
+
+    Ok(())
   }
 }
 
@@ -84,7 +86,7 @@ fn main() -> Result<(),Box<dyn Error>> {
   let mut g = Gui::new(&tc);
 
   while sys.handle_events(eventer) {
-    scr.frame(&mut g,sys.now());
+    scr.frame(&mut g,sys.now()).expect("oh no drawing broke");
   }
   Ok(())
 }

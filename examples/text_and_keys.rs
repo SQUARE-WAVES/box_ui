@@ -5,6 +5,7 @@ use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 
 use box_ui::UISystem;
+use box_ui::UIError;
 use box_ui::DrawContext; //using this for the trait impl
 use box_ui::IOContext; //once again the traits!
 use box_ui::FrameDrawer;
@@ -35,18 +36,18 @@ impl<'a,T:BoxFont> Gui<'a,T> {
 }
 
 impl<'a,T:BoxFont,D:DrawContext> FrameDrawer<D,()> for Gui<'a,T> {
-  fn draw_frame(&mut self,cnv: &mut D,io:&IOContext) {
+  fn draw_frame(&mut self,cnv: &mut D,io:&IOContext) -> Result<(),UIError> {
     cnv.set_rgba(0x00,0x00,0x00,0x00);
     cnv.clear();
     
 
-    self.fnt.write(cnv,&self.txt,self.x,self.y,self.line.as_str()).expect("write failed!");
+    self.fnt.write(cnv,&self.txt,self.x,self.y,self.line.as_str())?;
 
     if io.key_down(Keycode::E) {
       cnv.set_rgba(0xFF,0x00,0xFF,0xFF);
       cnv.blend_mul();
-      let (w,h) = self.fnt.bounds(self.line.as_str());
-      cnv.fill_rectangle(self.x, self.y+(h as i32)/4,w,h/4).expect("oh no rect failed");
+      let (w,h) = self.fnt.size(self.line.as_str());
+      cnv.fill_rectangle(self.x, self.y+(h as i32)/4,w,h/4)?;
       cnv.blend_off();
     }
 
@@ -67,6 +68,7 @@ impl<'a,T:BoxFont,D:DrawContext> FrameDrawer<D,()> for Gui<'a,T> {
     }
 
     cnv.present();
+    Ok(())
   }
 }
 
@@ -89,7 +91,7 @@ fn main() -> Result<(),Box<dyn Error>> {
       e=>scr.process_event(&e)
     }
   }) {
-    scr.frame(&mut g,sys.now());
+    scr.frame(&mut g,sys.now()).expect("oh no frame drawing failed");
   }
 
   Ok(())
