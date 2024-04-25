@@ -1,27 +1,24 @@
-/*use std::collections::HashMap;
-use sdl2::video::Window;
-use sdl2::video::WindowContext;
-use sdl2::render::Canvas;
-use sdl2::render::TextureCreator;
-use sdl2::render::Texture;
-use sdl2::event::Event;
-use sdl2::pixels::Color;
-use sdl2::image::LoadTexture;
-use sdl2::surface::Surface;
+use super::DrawContext;
+use super::IOContext;
+use super::BoxFont;
 
-use super::UIError;
-use super::io_state::IOState;
-use super::EventDispatcher;
-use super::io_context::IOContext;
-use super::draw_context::DrawContext;
-use super::texture_cache::TextureCache;
+pub mod buttons;
 
-pub struct Gui<'a> where {
-  canv:&'a mut Canvas<Window>,
+pub trait Widget
+  fn bounds(&self) -> (i32,i32,u32,u32);
+  fn draw<D:DrawContext>(&mut self, dc: &mut D, io: &IOContext);
 }
 
-impl<'a> Gui<'a>  where {
+pub trait Resizable
+  fn set_bounds(&self,bounds: (i32,i32,u32,u32));
+}
 
-	pub fn new(canv: &'a mut Canvas<Window> ) -> Result<Self,UIError> {
-	}
-}*/
+pub fn render_widget<W:Widget,D:DrawContext>(widget: &mut W, dc:&mut D, io: &IOContext) {
+  let restore_port = dc.get_portal();
+  dc.set_portal(w.bounds());
+  let io_cut = io.cut(w.bounds());
+
+  w.draw(dc,io);
+
+  dc.set_portal(restore_port);
+}

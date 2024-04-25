@@ -1,5 +1,10 @@
 use std::cmp::max;
+
 use sdl2::rect::Rect;
+use sdl2::render::Texture;
+
+use super::DrawContext;
+use super::UIError;
 
 pub struct LetterInfo {
 	pub offset:(i32,i32),
@@ -41,5 +46,43 @@ pub trait BoxFont {
     }
 
     (max(w,lc),h)
+  }
+
+  fn write<D>(&self, canv: &mut D,tx:&Texture, x: i32,y: i32,txt: &str) -> Result<(),UIError>
+  where D:DrawContext
+  {
+    let mut xpos = x;
+    let mut ypos = y;
+
+    for letter in txt.chars() {
+      match letter {
+        '\n' => {
+          xpos = x;
+          ypos += self.box_height() as i32;
+        },
+
+        l => {
+          let letter = self.letter_info(&l);
+          let src_rect = letter.src_rect();
+          let dest_rect = letter.dest_rect(xpos,ypos);
+
+          canv.stamp(tx,src_rect,dest_rect)?;
+          xpos += self.box_width() as i32;
+        }
+      };
+    }
+
+    Ok(())
+  }
+}
+
+//=============================================================================
+// conveniences
+impl From<(i32,i32,i32,i32,u32,u32)> for LetterInfo {
+  fn from( (o,o2,s,s2,s3,s4) : (i32,i32,i32,i32,u32,u32) ) -> LetterInfo {
+    LetterInfo{
+      offset:(o,o2),
+      src:(s,s2,s3,s4)
+    }
   }
 }

@@ -1,9 +1,10 @@
-extern crate box_ui;
-
 use std::error::Error;
-use box_ui::UISystem;
-use box_ui::TextureCache;
 use sdl2::event::Event;
+
+use box_ui::UISystem;
+use box_ui::DrawContext; //using this for the trait
+use box_ui::Canvas;
+use box_ui::IOContext;
 
 const COLORS: [(u8,u8,u8,u8);4] = [
   (0xFF,0xFF,0xFF,0xFF),
@@ -44,27 +45,32 @@ fn eventer(ev: Event) -> bool {
 fn main() -> Result<(),Box<dyn Error>> {
   let mut sys = UISystem::new()?;
   let mut scr = sys.new_screen("random rects",250,250)?;
-  let tc = scr.texture_creator();
-  let mut cache = TextureCache::new(&tc);
   let mut rng = LFSR::new();
 
+  let mut draw = |cnv: &mut Canvas,_io:&IOContext| {
+    cnv.set_rgba(0x00,0x00,0x00,0x00);
+    cnv.clear();
+
+    for _i in 0..10 {
+      let (r,g,b,a) = COLORS[rng.get(3) as usize];
+      let x:i32 = (rng.get(199) + 1) as i32;
+      let y:i32 = (rng.get(199) + 1) as i32;
+      let w:u32 = rng.get(49) + 1;
+      let h:u32 = rng.get(49) + 1;
+
+      cnv.set_rgba(r,g,b,a);
+      cnv.fill_rectangle(x,y,w,h).expect("wow how did rect drawing fail");
+    }
+
+    cnv.present();
+  };
+
   while sys.handle_events(eventer) {
-    scr.start_frame();
-    
-    scr.one_shot(&mut cache, 0,0,250,250,|mut dc| {
-      for _i in 0..10 {
-        let color = COLORS[rng.get(3) as usize];
-        dc.set_color_tup(color);
-        let x:i32 = (rng.get(199) + 1) as i32;
-        let y:i32 = (rng.get(199) + 1) as i32;
-        let w:u32 = rng.get(49) + 1;
-        let h:u32 = rng.get(49) + 1;
+    let now = sys.now();
+    scr.frame(&mut draw,now);
 
-        dc.fill_rectangle(x,y,w,h);
-      }
-    });
-
-    scr.end_frame();
+    //this isn't actually a good way to control frame rate
+    std::thread::sleep(std::time::Duration::from_millis(50));
   }
 
   Ok(())

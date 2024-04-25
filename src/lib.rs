@@ -2,26 +2,25 @@
 mod ui_error;
 mod io_state;
 mod screen;
-//mod stamp;
-mod gui;
 mod io_context;
 mod draw_context;
-mod key_index;
-mod key_map;
-//mod box_font;
-//mod font_writer;
-mod texture_cache;
+mod box_font;
 
 //exports
+pub use sdl2::image::LoadTexture;
+
 pub use ui_error::UIError;
 pub use screen::Screen;
-pub use texture_cache::TextureCache;
-//pub use gui::Gui;
-pub use io_context::IOContext;
+pub use screen::FrameDrawer;
 pub use draw_context::DrawContext;
-//pub use stamp::Stamp;
-//pub use box_font::BoxFont;
-//pub use box_font::LetterInfo;
+pub use io_state::IOState;
+pub use io_context::IOContext;
+pub use box_font::BoxFont;
+pub use box_font::LetterInfo;
+
+//not sure about this but maybe it will be ok
+pub type Canvas = sdl2::render::Canvas<sdl2::video::Window>;
+pub type TextureCreator = sdl2::render::TextureCreator<sdl2::video::WindowContext>;
 
 pub trait EventDispatcher {
   fn dispatch_event(&mut self,ev: &sdl2::event::Event) -> bool;
@@ -29,6 +28,7 @@ pub trait EventDispatcher {
 
 pub struct UISystem {
   vid: sdl2::VideoSubsystem,
+  tim: sdl2::TimerSubsystem,
   evp: sdl2::EventPump,
 }
 
@@ -36,6 +36,7 @@ impl UISystem {
   pub fn new() -> Result<UISystem,UIError> {
     let s = sdl2::init().map_err(UIError::SDLInit)?;
     let v = s.video().map_err(UIError::VideoInit)?;
+    let t = s.timer().map_err(UIError::TimerInit)?;
 
     sdl2::image::init(sdl2::image::InitFlag::PNG).map_err(UIError::ImageInit)?;
 
@@ -43,12 +44,13 @@ impl UISystem {
 
     Ok(UISystem {
       vid:v,
+      tim:t,
       evp:ev_pump
     })
   }
 
   pub fn new_screen(&self,name: &str, w:u32, h:u32) -> Result<Screen,UIError> {
-    Screen::new(&self.vid,name,w,h)
+    Screen::new(&self.vid,self.tim.performance_frequency(),name,w,h)
   }
 
   pub fn dispatch_events<D:EventDispatcher>(&mut self,dispatcher: &mut D) -> bool {
@@ -67,5 +69,14 @@ impl UISystem {
       }
     }
     true
+  }
+
+  pub fn now(&self) -> u64 {
+    self.tim.performance_counter()
+  }
+ 
+  //this is the amount of performance counter ticks per second
+  pub fn freq(&self) -> u64 {
+    self.tim.performance_frequency()
   }
 }

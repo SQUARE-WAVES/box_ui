@@ -1,9 +1,16 @@
 use sdl2::event::Event;
-use sdl2::mouse::MouseButton;
+use sdl2::event::WindowEvent;
 
-use super::key_map::KeyMap;
+mod key_map;
+mod key_index;
+mod mouse_state;
 
-#[derive(Copy,Clone,PartialEq,Eq)]
+use key_map::KeyMap;
+pub use mouse_state::MouseState;
+pub use mouse_state::MouseButton;
+
+//this is shared by both the mouse and keyboard states
+#[derive(Copy,Clone,PartialEq,Eq,Debug)]
 pub enum ButtonPosition {
 	UP,
 	DOWN,	
@@ -26,47 +33,50 @@ impl ButtonState {
 	}
 }
 
-#[derive(Copy,Clone)]
-pub struct MouseState {
-	pub left_button: ButtonState,
-	pub right_button: ButtonState,
-	pub middle_button: ButtonState,
-	pub pos:(i32,i32),
-	pub wheel_amount: i32
-}
-
-impl MouseState {
-	pub fn new() -> Self {
-		MouseState {
-			left_button:ButtonState::new(),
-			right_button: ButtonState::new(),
-			middle_button: ButtonState::new(),
-			pos:(0,0),
-			wheel_amount: 0
-		}
-	}
-}
-
 pub struct IOState {
 	pub current_mouse:MouseState,
 	pub prev_mouse:MouseState,
-	pub key_map:KeyMap
+	pub key_map:KeyMap,
+  pub size: (u32,u32),
+  pub current_time: u64,
+  pub prev_time: u64,
+  pub time_scale: u64
 }
 
 impl IOState {
-	pub fn new() -> Self {
+	pub fn new(w:u32,h:u32,time_scale:u64) -> Self {
 		IOState {
 			current_mouse:MouseState::new(),
 			prev_mouse:MouseState::new(),
-			key_map:KeyMap::new()
+			key_map:KeyMap::new(),
+      size:(w,h),
+      current_time:0,
+      prev_time:0,
+      time_scale:time_scale
 		}
 	}
 
 	pub fn flip(&mut self) {
 		self.prev_mouse = self.current_mouse;
+    self.key_map.flip();
+    self.prev_time = self.current_time;
 	}
 
+  //not sure how this is gonna work for context but WE WILL SEE
+  fn process_window_event(&mut self,ev:&WindowEvent) -> bool {
+    match ev {
+      WindowEvent::Resized(new_w,new_h) => {
+        self.size=(*new_w as u32,*new_h as u32);
+        true
+      },
+
+      _=> true
+    }
+  }
+
 	pub fn process_event(&mut self, ev: &Event) -> bool {
+    //we are dealing with sdl events here, so use their mouse button enum
+    use sdl2::mouse::MouseButton;
 		match ev {
 			Event::MouseMotion {x, y, ..} => {
 				self.current_mouse.pos = (*x,*y);
@@ -114,10 +124,26 @@ impl IOState {
 				if let Some(kc) = keycode {
 					self.key_map.set_state_up(kc,self.current_mouse.pos)
 				}
-			}
+			},
+
+      Event::Window {win_event, ..} => {
+        self.process_window_event(&win_event);
+      }
 			_=>()
 		};
 
     true
 	}
+
+  pub fn get_current_mouse_state (&self, btn: mouse_state::MouseButton) -> &ButtonState {
+    self.current_mouse.get_btn(btn)
+  }
+  
+  pub fn get_prev_mouse_state (&self, btn: mouse_state::MouseButton) -> &ButtonState {
+    self.prev_mouse.get_btn(btn)
+  }
 }
+
+
+
+

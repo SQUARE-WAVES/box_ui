@@ -9,10 +9,14 @@ use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::event::Event;
+use sdl2::video::WindowContext;
+use sdl2::render::TextureCreator;
+use sdl2::render::Texture;
 
 use box_ui::UISystem;
-use box_ui::TextureCache;
-use box_ui::UIError;
+use box_ui::DrawContext;
+use box_ui::FrameDrawer;
+use box_ui::IOContext;
 
 //makes a lil triangle gradient guy
 fn make_surface() -> Surface<'static> {
@@ -28,14 +32,42 @@ fn make_surface() -> Surface<'static> {
     let h = i as i32;
 
     scan.set_draw_color(Color::RGBA(0xFF-i,0x55,0xFF,0xFF));
-    scan.draw_line(Point::new(0,h),Point::new(mid_start,h));
-    scan.draw_line(Point::new(mid_end,h),Point::new(256,h));
+    scan.draw_line(Point::new(0,h),Point::new(mid_start,h)).expect("surface line broke");
+    scan.draw_line(Point::new(mid_end,h),Point::new(256,h)).expect("surface line 2 broke");
 
     scan.set_draw_color(Color::RGBA(0x55,0xFF,i,0xFF));
-    scan.draw_line(Point::new(mid_start,h),Point::new(mid_end,h));
+    scan.draw_line(Point::new(mid_start,h),Point::new(mid_end,h)).expect("surface line 3 broke");
   }
 
   scan.into_surface()
+}
+
+struct Gui<'a> {
+  tx:Texture<'a>,
+  rot:f64
+}
+
+impl<'a> Gui<'a> {
+  pub fn new(tc: &'a TextureCreator<WindowContext>) -> Self {
+    let surf = make_surface();
+    let tx = surf.as_texture(tc).expect("texture blew up");
+    Self{tx:tx,rot:0.0}
+  }
+}
+
+impl<'a,T:DrawContext> FrameDrawer<T,()> for Gui<'a> {
+  fn draw_frame(&mut self,cnv: &mut T,io:&IOContext) {
+    let (_,_,w,h) = io.bounds();
+    cnv.set_rgba(0,0,0,0);
+    cnv.clear();
+    let x = ((w-256)/2) as i32;
+    let y = ((h-256)/2) as i32;
+    cnv.stamp_ex(&self.tx,None,Rect::new(x,y,256,256),self.rot,None,false,false).
+    expect("oh no the stamp broke");
+    cnv.present();
+
+    self.rot += 1.0;
+  }
 }
 
 fn eventer(ev: Event) -> bool {
@@ -49,26 +81,10 @@ fn main() -> Result<(),Box<dyn Error>> {
   let mut sys = UISystem::new()?;
   let mut scr = sys.new_screen("borto",600,600)?;
   let tc = scr.texture_creator();
-  let mut cache = TextureCache::new(&tc);
-
-  let surf = make_surface();
-
-  cache.load("pyramid",move|tc|{
-    surf.as_texture(&tc).map_err(UIError::TextureCreate)
-  });
-
-  let mut rot : f64 = 0.0;
+  let mut g = Gui::new(&tc);
 
   while sys.handle_events(eventer) {
-    scr.start_frame();
-    
-    scr.one_shot(&mut cache,0,0,250,250,|mut dc| {
-      dc.stamp_ex("pyramid",(0,0,256,256),(10,10,256,256),rot,None,false,false).unwrap();
-    });
-
-    scr.end_frame();
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    rot = rot + 1.0;
+    scr.frame(&mut g,sys.now());
   }
   Ok(())
 }

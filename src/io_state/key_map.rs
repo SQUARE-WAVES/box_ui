@@ -1,7 +1,8 @@
 use sdl2::keyboard::Keycode;
 use std::vec::Vec;
-use super::io_state::ButtonState;
-use super::io_state::ButtonPosition;
+use super::ButtonState;
+use super::ButtonPosition;
+
 use super::key_index;
 
 #[derive(Copy,Clone)]
