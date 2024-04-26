@@ -17,6 +17,7 @@ pub enum UIError {
   WindowCreation(WindowBuildError),
   CanvasCreation(IntegerOrSdlError),
   LogicalSize(IntegerOrSdlError),
+  FrameRate(String),
   TextureCopy(String),
   DrawFailure(String)
 }
@@ -47,6 +48,8 @@ impl fmt::Display for UIError {
       UIError::WindowCreation(e) => e.fmt(f),
 
       UIError::CanvasCreation(e) => e.fmt(f),
+
+      UIError::FrameRate(s) => write!(f,"setting the framerate failed: {}",s),
 
       UIError::LogicalSize(e) => e.fmt(f),
 

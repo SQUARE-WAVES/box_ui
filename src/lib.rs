@@ -9,6 +9,7 @@ mod box_font;
 mod gui;
 
 use screen_builder::ScreenBuilder;
+use sdl2::gfx::framerate::FPSManager;
 
 //exports
 pub use sdl2::image::LoadTexture;
@@ -36,6 +37,7 @@ pub struct UISystem {
   vid: sdl2::VideoSubsystem,
   tim: sdl2::TimerSubsystem,
   evp: sdl2::EventPump,
+  frame_buddy:FPSManager,
 }
 
 impl UISystem {
@@ -47,11 +49,14 @@ impl UISystem {
     sdl2::image::init(sdl2::image::InitFlag::PNG).map_err(UIError::ImageInit)?;
 
     let ev_pump = s.event_pump().map_err(UIError::EventPumpCreation)?;
+    let mut fps = FPSManager::new();
+    fps.set_framerate(60).map_err(UIError::FrameRate)?;
 
     Ok(UISystem {
       vid:v,
       tim:t,
-      evp:ev_pump
+      evp:ev_pump,
+      frame_buddy:fps
     })
   }
 
@@ -85,6 +90,14 @@ impl UISystem {
       }
     }
     true
+  }
+
+  pub fn set_framerate(&mut self, new_fr: u32) -> Result<(),UIError> {
+    self.frame_buddy.set_framerate(new_fr).map_err(UIError::FrameRate)
+  }
+
+  pub fn frame_delay(&mut self) {
+    self.frame_buddy.delay();
   }
 
   pub fn now(&self) -> u64 {

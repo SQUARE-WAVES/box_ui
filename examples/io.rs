@@ -56,6 +56,8 @@ fn main() -> Result<(),Box<dyn Error>> {
     if scr.frame(&mut draw,sys.now())? {
       break;
     }
+
+    sys.frame_delay();
   }
 
   Ok(())
