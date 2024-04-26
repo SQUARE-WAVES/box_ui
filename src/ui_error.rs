@@ -16,6 +16,7 @@ pub enum UIError {
   TimerInit(String),
   WindowCreation(WindowBuildError),
   CanvasCreation(IntegerOrSdlError),
+  LogicalSize(IntegerOrSdlError),
   TextureCopy(String),
   DrawFailure(String)
 }
@@ -46,6 +47,8 @@ impl fmt::Display for UIError {
       UIError::WindowCreation(e) => e.fmt(f),
 
       UIError::CanvasCreation(e) => e.fmt(f),
+
+      UIError::LogicalSize(e) => e.fmt(f),
 
       UIError::TextureCopy(s) => write!(f,"Texture copy failed: {}",s),
 

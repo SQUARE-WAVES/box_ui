@@ -39,13 +39,18 @@ impl LFSR{
 fn eventer(ev: Event) -> bool {
   match ev {
       Event::Quit{..} => false,
+      Event::KeyDown{..} => false,
+      Event::MouseButtonDown{x,y,..} => {
+        println!("mouse {} {}",x,y);
+        true
+      }
       _=> true
     }
 }
 
 fn main() -> Result<(),Box<dyn Error>> {
   let mut sys = UISystem::new()?;
-  let mut scr = sys.new_screen("random rects",250,250)?;
+  let mut scr = sys.build_screen("random rects",250,250).build()?;
   let mut rng = LFSR::new();
 
   let mut draw = |cnv: &mut Canvas,_io:&IOContext| -> Result<(),UIError> {

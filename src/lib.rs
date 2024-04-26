@@ -2,10 +2,13 @@
 mod ui_error;
 mod io_state;
 mod screen;
+mod screen_builder;
 mod io_context;
 mod draw_context;
 mod box_font;
 mod gui;
+
+use screen_builder::ScreenBuilder;
 
 //exports
 pub use sdl2::image::LoadTexture;
@@ -53,7 +56,17 @@ impl UISystem {
   }
 
   pub fn new_screen(&self,name: &str, w:u32, h:u32) -> Result<Screen,UIError> {
-    Screen::new(&self.vid,self.tim.performance_frequency(),name,w,h)
+    let wnd = self.vid.window(name,w,h).
+    build().
+    map_err(UIError::WindowCreation)?;
+
+    let io = IOState::new(w,h,self.tim.performance_frequency());
+
+    Screen::new(wnd,io)
+  }
+
+  pub fn build_screen(&self,name: &str, w:u32, h:u32) -> ScreenBuilder {
+    ScreenBuilder::new(&self.vid,self.tim.performance_frequency(),name,w,h)
   }
 
   pub fn dispatch_events<D:EventDispatcher>(&mut self,dispatcher: &mut D) -> bool {

@@ -1,12 +1,14 @@
 use std::error::Error;
 
 use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 use box_ui::UISystem;
 use box_ui::UIError;
 use box_ui::DrawContext; //using this for the trait impl
 use box_ui::IOContext; //once again the traits!
 use box_ui::Canvas;
+
 
 const COLORS: [(u8,u8,u8,u8);4] = [
   (0xFF,0xFF,0xFF,0xFF),
@@ -17,11 +19,11 @@ const COLORS: [(u8,u8,u8,u8);4] = [
 
 fn main() -> Result<(),Box<dyn Error>> {
   let mut sys = UISystem::new()?;
-  let mut scr = sys.new_screen("pangea",250,250)?;
+  let mut scr = sys.build_screen("pangea",250,250).resizable().build()?;
 
   let mut color = 0;
 
-  let mut draw = |cnv: &mut Canvas,io:&IOContext| -> Result<(),UIError> {
+  let mut draw = |cnv: &mut Canvas,io:&IOContext| -> Result<bool,UIError> {
     cnv.set_rgba(0x00,0x00,0x00,0x00);
     cnv.clear();
 
@@ -33,8 +35,16 @@ fn main() -> Result<(),Box<dyn Error>> {
       color = (color+1)%4;
     }
 
+    if io.start_left_click() {
+      println!("click {} {}",x,y);
+    }
+
+    if io.key_down(Keycode::Q) {
+      return Ok(true)
+    }
+
     cnv.present();
-    Ok(())
+    Ok(false)
   };
 
   while sys.handle_events(|ev|{
@@ -43,7 +53,9 @@ fn main() -> Result<(),Box<dyn Error>> {
       e=>scr.process_event(&e)
     }
   }) {
-    scr.frame(&mut draw,sys.now()).expect("oh no frame drawing blew up");
+    if scr.frame(&mut draw,sys.now())? {
+      break;
+    }
   }
 
   Ok(())

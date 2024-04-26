@@ -9,9 +9,6 @@ use super::DrawContext;
 use super::IOContext;
 use super::IOState;
 
-//some convenicnes
-use sdl2::VideoSubsystem as Video;
-
 pub trait FrameDrawer<D:DrawContext,T> {
   //the result is so you can use the ? to handle errors in the drawing
   fn draw_frame(&mut self,cnv:&mut D,io: &IOContext)->Result<T,UIError>;
@@ -23,11 +20,7 @@ pub struct Screen {
 }
 
 impl Screen {
-  
-  pub fn new(vid: &Video, time_scale:u64, name:&str, w:u32,h:u32) -> Result<Self,UIError> {
-    let wnd = vid.window(name,w,h).
-    build().
-    map_err(UIError::WindowCreation)?;
+  pub fn new(wnd: Window, io:IOState) -> Result<Self,UIError> {
     
     let cnv = wnd.
     into_canvas().
@@ -36,7 +29,7 @@ impl Screen {
     build().
     map_err(UIError::CanvasCreation)?;
 
-    Ok(Self{cnv:cnv,io:IOState::new(w,h,time_scale)})
+    Ok(Self{cnv:cnv,io:io})
   }
 
   pub fn id(&self) -> u32 { self.cnv.window().id() }
@@ -61,7 +54,6 @@ impl Screen {
     self.io.flip();
     out
 	}
-
 }
 
 //some generic frame drawing impls
@@ -70,3 +62,4 @@ impl<C:DrawContext,R,T:FnMut(&mut C,&IOContext) -> Result<R,UIError>> FrameDrawe
     self(cnv,io)
   }
 }
+
