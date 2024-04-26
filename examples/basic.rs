@@ -40,10 +40,6 @@ fn eventer(ev: Event) -> bool {
   match ev {
       Event::Quit{..} => false,
       Event::KeyDown{..} => false,
-      Event::MouseButtonDown{x,y,..} => {
-        println!("mouse {} {}",x,y);
-        true
-      }
       _=> true
     }
 }

@@ -49,44 +49,43 @@ impl Dispatcher {
   pub fn map(&mut self) -> &mut HashMap<u32,(Screen,Drawer)> {
     &mut self.map
   }
+
+  pub fn win_id<'a>(&self, e: &'a Event) -> Option<&'a u32> {
+    match e {
+      Event::Window{window_id:w,..} => Some(w),
+      Event::KeyDown{window_id:w,..} => Some(w),
+      Event::KeyUp{window_id:w,..}  => Some(w),
+      Event::MouseButtonDown{window_id:w,..}  => Some(w),
+      Event::MouseButtonUp{window_id:w,..}  => Some(w),
+      Event::MouseMotion{window_id:w,..}  => Some(w),
+      Event::MouseWheel{window_id:w,..}  => Some(w),
+      _ => None
+    }
+  }
+
+  pub fn route_event(&mut self,id:&u32,ev:&Event) -> bool {
+    self.map.get_mut(id).map(|(s,_d)| s.process_event(ev)).unwrap_or(true)
+  }
 }
 
 //gotta figure out a better way to do this!
 impl EventDispatcher for Dispatcher {
   fn dispatch_event(&mut self,ev: &sdl2::event::Event) -> bool {
+
     match ev {
       Event::Quit{..} => false,
 
       Event::Window{window_id:w,win_event:WindowEvent::Close,..} => {
         self.map.remove(&w);
         true
+      },
+
+      ev => {
+        match self.win_id(ev) {
+          Some(id) => self.route_event(id,ev),
+          None => true
+        }
       }
-
-      e @ Event::KeyDown{window_id:w,..} => {
-        self.map.get_mut(&w).map(|(s,_d)|s.process_event(e)).unwrap_or(true)
-      },
-
-      e @ Event::KeyUp{window_id:w,..}  => {
-        self.map.get_mut(&w).map(|(s,_d)|s.process_event(e)).unwrap_or(true)
-      },
-
-      e @ Event::MouseButtonDown{window_id:w,..}  => {
-        self.map.get_mut(&w).map(|(s,_d)|s.process_event(e)).unwrap_or(true)
-      },
-
-      e @ Event::MouseButtonUp{window_id:w,..}  => {
-        self.map.get_mut(&w).map(|(s,_d)|s.process_event(e)).unwrap_or(true)
-      },
-
-      e @ Event::MouseMotion{window_id:w,..}  => {
-        self.map.get_mut(&w).map(|(s,_d)|s.process_event(e)).unwrap_or(true)
-      },
-
-      e @ Event::MouseWheel{window_id:w,..}  => {
-        self.map.get_mut(&w).map(|(s,_d)|s.process_event(e)).unwrap_or(true)
-      },
-
-      _=> true
     }
   }
 }
